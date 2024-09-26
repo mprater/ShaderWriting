@@ -1,0 +1,14 @@
+build/*
+*.oso
+*.so
+*.o
+*.zip
+*.pyc
+*.swp
+*.app
+*.slo
+*.tif
+*.pyc
+*.gz
+*.tar
+*.splt
