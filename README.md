@@ -9,7 +9,7 @@ Documentation is in the [`doc`](doc) directory.
 
 [Open Shading Language](https://github.com/AcademySoftwareFoundation/OpenShadingLanguage) is a project of the [Academy Software Foundation](https://www.aswf.io/projects).
 
-[RenderMan<sup>&reg;</sup>](https://renderman.pixar.com/) is 
+[RenderMan](https://renderman.pixar.com/)<sup>&reg;</sup> is 
 [Pixar's](https://www.pixar.com/)
 multi-award winning rendering and application software ecosystem.
 
@@ -31,3 +31,7 @@ It also makes use of open source content generously provided by
 The `osl` directory content is currently being created. This was delayed due to my development machine dying recently. Please stay tuned. I will make an announcement as soon as this repository is complete. 
 
 Thanks for your patience!
+
+Also, some books were shipped early without color images. If you received such a copy, please contact the publisher so they can send you a replacement.
+
+I sincerely apologize for this inconvenience.
