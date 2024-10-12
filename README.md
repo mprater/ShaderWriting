@@ -32,6 +32,6 @@ The `osl` directory content is currently being created. This was delayed due to 
 
 Thanks for your patience!
 
-Also, some books were shipped early without color images. If you received such a copy, please contact the publisher so they can send you a replacement.
+Also, some books were shipped early without color images. If you received such a copy, please [contact the publisher](https://www.routledge.com/contacts/customer-service) so they can send you a replacement.
 
 I sincerely apologize for this inconvenience.
