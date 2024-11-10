@@ -1,0 +1,63 @@
+/*
+ *  Copyright 2024 Mitch J Prater.
+ *
+ *  Licensed under the Apache License Version 2.0 http://apache.org/licenses/LICENSE-2.0,
+ *  or the MIT license http://opensource.org/licenses/MIT, at your option.
+ *
+ *  This program may not be copied, modified, or distributed except according to those terms.
+ */
+shader modify_Contrast
+[[
+    int rfm_nodeid = 1306990,
+    string rfm_classification = "rendernode/RenderMan/pattern/OSLBook"
+]]
+(
+    string Notes = ""
+    [[
+        int connectable = 0,
+        string help =
+            "Uses average value interpolation to adjust the contrast "
+            "of the input pattern. "
+    ]],
+
+    float in = 0.5
+    [[
+        string help =
+            "The input pattern. "
+    ]],
+
+    float inAvg = 0.5
+    [[
+        int slider = 1, float slidermin = 0.0, float slidermax = 1.0,
+        string help =
+            "The input pattern's average value. "
+    ]],
+
+    color In = color(0.5)
+    [[
+        string help =
+            "The input pattern. "
+    ]],
+
+    color InAvg = color(0.5)
+    [[
+        string help =
+            "The input pattern's average value. "
+    ]],
+
+    float Contrast = 1.0
+    [[
+        int slider = 1, float slidermin = 0.0, float slidermax = 2.0,
+        string help =
+            "Decrease (Contrast < 1) or increase (1 < Contrast) "
+            "the contrast of the inputs. "
+    ]],
+
+    output float out = 0.0,
+    output color Out = color(0.0)
+)
+{
+    // Contrast adjust the input.
+    out = mix( inAvg, in, Contrast );
+    Out = mix( InAvg, In, Contrast );
+}

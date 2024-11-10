@@ -1,0 +1,165 @@
+/*
+ *  Copyright 2024 Mitch J Prater.
+ *
+ *  Licensed under the Apache License Version 2.0 http://apache.org/licenses/LICENSE-2.0,
+ *  or the MIT license http://opensource.org/licenses/MIT, at your option.
+ *
+ *  This program may not be copied, modified, or distributed except according to those terms.
+ */
+shader texture_RoundedCube
+[[
+    int rfm_nodeid = 1306945,
+    string rfm_classification = "rendernode/RenderMan/pattern/OSLBook"
+]]
+(
+    string Notes = ""
+    [[
+        int connectable = 0,
+        string help =
+            "Projects the 2D texture <b>File</b> onto the surface of an object. "
+            "Uses the faces of a cube defined by the surface normal directions to "
+            "determine the orthographic texture projections along the cardinal axes. "
+            "While this projection creates seams, it minimizes distortion of the "
+            "texture's pattern. This is now commonly referred to as \"tri-planar\" "
+            "projection. "
+    ]],
+
+    string File = ""
+    [[
+        string fileTypes = "tex",
+        string options = "texture",
+        string help =
+            "The name of the 2D texture file to use. "
+            "This is assumed to contain 1(R), 2(RA), 3(RGB), or 4(RGBA) "
+            "channels of information. "
+    ]],
+
+    float Size = 1.0
+    [[
+        string label = "Size",
+        int slider = 1, float slidermin = 0.1, float slidermax = 10.0, float slidercenter = 1.0,
+        string help =
+            "Manually adjusts the resulting 2D texture pattern's projected size. "
+    ]],
+
+    int Projection = 1
+    [[
+        int connectable = 0,
+        string widget = "mapper",
+        string options = "Triplanar:0|Hexplanar:1",
+        string help =
+            "Selects whether the texture is projected along three "
+            "axes (<i>Triplanar</i> = 0), or six axes (<i>Hexplanar</i> = 1). "
+            "<p> "
+            "When using three axes, the texture is reversed on the opposite "
+            "facing directions. <i>Hexplanar</i> projection preserves the texture "
+            "orientation on all six faces but requires twice the number of "
+            "texture evaluations. "
+            "</p> "
+    ]],
+
+    float SeamWidth = 0.25
+    [[
+        string label = "Seam Width",
+        int slider = 1, float slidermin = 0.0, float slidermax = 0.5,
+        string help =
+            "Exerts exponential control over the width of "
+            "the seam between the cube projection's faces. "
+            "It's these seams which comprise the \"rounded\" component "
+            "of this texture projection's name. "
+    ]],
+
+    float SeamContrast = 1.4
+    [[
+        string label = "Seam Contrast",
+        int slider = 1, float slidermin = 1.0, float slidermax = 2.0,
+        string help =
+            "Blending a pattern with itself results in a loss of contrast "
+            "in the blended region. This control adjusts the contrast of the "
+            "blended seams to restore them to the original texture's contrast. "
+    ]],
+
+    output color RGB = color(0.0),
+    output float R = 0.0,
+    output float G = 0.0,
+    output float B = 0.0
+)
+{
+    // Projection space.
+    point  Q = P;
+    normal QN = Ng;
+
+    // Use __Pref an __Nref if they exist.
+    getattribute( "primvar", "__Pref", Q );
+    getattribute( "primvar", "__Nref", QN );
+
+    // Transform to "object" space and adjust the size.
+    Q = transform( "common", "object", Q ) / max( 1.0e-6, Size );
+    QN = transform( "common", "object", QN );
+    QN = normalize( QN );
+
+    // Identify the surface orientations relative to the +/- axis directions.
+    vector  QNSign;
+    QNSign.x = select( 1, 0, QN.x < 0 );
+    QNSign.y = select( 1, 0, QN.y < 0 );
+    QNSign.z = select( 1, 0, QN.z < 0 );
+
+    // The three + axis projections.
+    color  pZ = texture( File, Q.x, 1-Q.y );
+
+    Q = point( -Q.x, Q.z, Q.y );
+    color  pY = texture( File, Q.x, 1-Q.y );
+
+    Q = point( -Q.y, Q.z, Q.x );
+    color  pX = texture( File, Q.x, 1-Q.y );
+
+    // The three - axis projections.
+    color  nZ, nY, nX;
+
+    if( 0 == Projection )
+    {
+        nZ = pZ;
+        nY = pY;
+        nX = pX;
+    }
+    else
+    {
+        Q = point( Q.z, Q.y, Q.x );
+        nZ = texture( File, Q.x, 1-Q.y );
+
+        Q = point( Q.x, Q.z, Q.y );
+        nY = texture( File, Q.x, 1-Q.y );
+
+        Q = point( -Q.y, Q.z, Q.x );
+        nX = texture( File, Q.x, 1-Q.y );
+    }
+
+    // Seams.
+    float  expon = min( 2.5 / SeamWidth, 50.0 );
+    QN = pow( abs(QN), expon );
+
+    float  sum = QN.x + QN.y + QN.z;
+    QN /= sum;
+
+    // Blend the six +/- axis projections.
+    RGB = pX * (QN.x * QNSign.x)
+        + pY * (QN.y * QNSign.y)
+        + pZ * (QN.z * QNSign.z)
+        + nX * (QN.x * (1.0 - QNSign.x))
+        + nY * (QN.y * (1.0 - QNSign.y))
+        + nZ * (QN.z * (1.0 - QNSign.z));
+
+    // Normalize the blend amount to range from 0 to 1.
+    float  blend = 1.0 - max( QN.x, max( QN.y, QN.z ));
+    blend *= 3.0/2.0;
+
+    // Contrast adjust the blended seams.
+    color  RGBAvg = texture( File, 0.5, 0.5, "blur", 1.0 );
+    color  RGBseam = mix( RGBAvg, RGB, SeamContrast );
+    RGB = mix( RGB, RGBseam, blend );
+
+    // Set the remaining outputs.
+    R = RGB.r;
+    G = RGB.g;
+    B = RGB.b;
+}

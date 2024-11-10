@@ -1,0 +1,33 @@
+/*
+ *  Copyright 2024 Mitch J Prater
+ *
+ *  Licensed under the Apache License Version 2.0 http://apache.org/licenses/LICENSE-2.0,
+ *  or the MIT license http://opensource.org/licenses/MIT, at your option.
+ *
+ *  This program may not be copied, modified, or distributed except according to those terms.
+ */
+#include "combine/InputPair.h"
+
+shader combine_Div
+[[
+    int rfm_nodeid = 1306967,
+    string rfm_classification = "rendernode/RenderMan/pattern/OSLBook"
+]]
+(
+    string Notes = ""
+    [[
+        int connectable = 0,
+        string help =
+            "Divide the A and B inputs: output = A / B. "
+    ]],
+
+    INPUT_PAIR(A),
+    INPUT_PAIR(B),
+
+    output float out = 0.0,
+    output color Out = color(0.0)
+)
+{
+    out = A_in / B_in;
+    Out = A_In / B_In;
+}

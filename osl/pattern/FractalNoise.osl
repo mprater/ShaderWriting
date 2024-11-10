@@ -1,0 +1,255 @@
+/*
+ *  Copyright 2024 Mitch J Prater.
+ *
+ *  Licensed under the Apache License Version 2.0 http://apache.org/licenses/LICENSE-2.0,
+ *  or the MIT license http://opensource.org/licenses/MIT, at your option.
+ *
+ *  This program may not be copied, modified, or distributed except according to those terms.
+ */
+shader pattern_FractalNoise
+[[
+    int rfm_nodeid = 1306970,
+    string rfm_classification = "rendernode/RenderMan/pattern/OSLBook"
+]]
+(
+    string Notes = ""
+    [[
+        int connectable = 0,
+        string help =
+            "A fractal is created by combinging multiple pattern instances "
+            "at different scales and amplitudes. "
+            "This shader uses a noise pattern as its basis. "
+            "Produces "
+            "<a href='https://en.wikipedia.org/wiki/Fractional_Brownian_motion'>"
+            "fractional Brownian motion</a> "
+            "or a "
+            "<a href='https://en.wikipedia.org/wiki/Fractal'> fractal</a> "
+            "pattern using the selected <b>Noise Type</b>. "
+    ]],
+
+    point Space = P
+    [[
+        string readOnly = "True",
+        string help =
+            "Defines the space in which the pattern is generated. "
+            "Contains up to the first three dimensions. "
+            "If not connected, \"object\" space <tt>Po</tt> will be used. "
+    ]],
+
+    float FourthDimension = 0.0
+    [[
+        string label = "Fourth Dimension",
+        int slider = 1, float slidermin = -5.0, float slidermax = 5.0,
+        string help =
+            "Adds an additional spatial dimension to the <b>Space</b> "
+            "used to generate the pattern when <b>Noise Dimensions</b> "
+            "is set to <i>4D</i>. "
+    ]],
+
+    int NoiseDimensions = 3
+    [[
+        int connectable = 0,
+        string label = "Noise Dimensions",
+        string widget = "mapper",
+        string options = "1D:1|2D:2|3D:3|4D:4",
+        string help =
+            "Explicitly controls the dimension of the noise. "
+            "This can have a particularly large impact on the <i>Simplex</i> <b>Noise Type</b>. "
+    ]],
+
+    string NoiseType = "uperlin"
+    [[
+        int connectable = 0,
+        string label = "Noise Type",
+        string widget = "mapper",
+        string options = "Perlin:uperlin|Simplex:usimplex|Cell:cell",
+        string help =
+            "Selects the type of noise pattern to generate. "
+    ]],
+
+    float Size = 1.0
+    [[
+        int slider = 1, float slidermin = 0.1, float slidercenter = 1.0, float slidermax = 10.0,
+        string help =
+            "Controls the size of the pattern variations. "
+    ]],
+
+    int FractalType = 0
+    [[
+        int connectable = 0,
+        string label = "Fractal Type",
+        string widget = "mapper",
+        string options = "Fractal:0|fBm:1",
+        string help =
+            "Selects whether a standard "
+            "<a href='https://en.wikipedia.org/wiki/Fractal'><i>Fractal</i></a> "
+            "or "
+            "<a href='https://en.wikipedia.org/wiki/Fractional_Brownian_motion'><i>fBm</i></a> "
+            "(fractional Brownian motion) is produced. "
+            "These use different mechanisms based on <b>Roughness</b> "
+            "to control the amplitude of each iteration. "
+    ]],
+
+    float Roughness = 0.5
+    [[
+        int slider = 1, float slidermin = 0.0, float slidermax = 1.0,
+        string help =
+            "The fractal <i>asperitas</i>, or roughness parameter, "
+            "determines the overall appearance of the result by "
+            "controlling each iteration's amplitude. "
+            "<p>"
+            "<i>Lower</i> values produce smoother looking patterns.<br/> "
+            "<i>Higher</i> values produce rougher looking patterns. "
+            "</p>"
+    ]],
+
+    float Lacunarity = 2.0
+    [[
+        int connectable = 0,
+        int slider = 1, float slidermin = 1.0, float slidermax = 4.0,
+        string help =
+            "The frequency of each successive iteration in the fractal generation "
+            "process is scaled up from the previous iteration's frequency by the "
+            "lacunarity value: "
+            "<p>"
+            "<tt>f<sub>i+1</sub> = f<sub>i</sub> * lacunarity</tt>, where <tt>f</tt> is the frequency "
+            "and <tt>i</tt> is the iteration number. "
+            "</p>"
+            "The process starts with the largest noise pattern at "
+            "frequency = 1 and amplitude = 1. "
+    ]],
+
+    int Iterations = 5
+    [[
+        int connectable = 0,
+        int slider = 1, float slidermin = 1, float slidermax = 10, float sensitivity = 1,
+        string help =
+            "The number of iterations to use. "
+            "Higher values will produce patterns that contain higher "
+            "frequencies, but be sure not to use more iterations than "
+            "can be seen as the additional computations will serve no "
+            "purpose. "
+    ]],
+
+    float Erosion = 0.0
+    [[
+        int slider = 1, float slidermin = -1.5, float slidermax = 1.5,
+        string help =
+            "Erosion modifies the so-called \"crossover scale\" of the fractal. "
+            "<p>"
+            "<i>Negative</i> values will smooth out the <i>low valued</i> areas.<br/> "
+            "<i>Positive</i> values will smooth the <i>high valued</i> ones.<br/> "
+            "<i>Zero</i> results in no erosion. "
+            "</p>"
+    ]],
+
+    float Distortion = 0.0
+    [[
+        int slider = 1, float slidermin = 0.0, float slidermax = 1.0,
+        string help =
+            "Controls what percentage the <b>Space</b> value is warped "
+            "for succesive iterations during the pattern generation process. "
+            "This distorion is based on the previous iteration's result, so "
+            "this only has an effect when <b>Iterations</b> is <i>2</i> or more. "
+    ]],
+
+    float Variation = 0.0
+    [[
+        int slider = 1, float slidermin = -5.0, float slidermax = 5.0,
+        string help =
+            "This offsets the noise pattern. "
+            "Can be used to ensure that different objects do not appear identical. "
+    ]],
+
+    output float  Float = 0.0,
+    output color  Gray = color(0.0),
+    output color  Color = color(0.0),
+    output point  Point = point(0.0),
+    output vector Vector = vector(0.0),
+    output normal Normal = normal(0.0),
+    output float  OutSize = 0.0
+)
+{
+    // Pattern generation space.
+    point  Q = Space;
+
+    // Fallback to un-displaced "object" space.
+    if( !isconnected( Space ))
+    {
+        getattribute( "builtin", "Po", Q );
+        Q = transform( "common", "object", Q );
+    }
+
+    // Size scaling.
+    Q /= max( 1.0e-6, Size );
+
+    // Variation offset.
+    Q += vector( Variation );
+
+    // Initialize the iteration variables.
+    float  ifreq = 1.0;
+    color  mag = color(1);
+    color  sum = color(0);
+
+    // Compute the fractal.
+    for( int i=0; i < Iterations; i++ )
+    {
+        // This iteration's space.
+        point  iQ = Q * ifreq;
+
+        // This iteration's pattern.
+        color  iP;
+
+        if( 1 == NoiseDimensions )
+        {
+            iP = noise( NoiseType, iQ.x );
+        }
+        else if( 2 == NoiseDimensions )
+        {
+            iP = noise( NoiseType, iQ.x, iQ.y );
+        }
+        else if( 3 == NoiseDimensions )
+        {
+            iP = noise( NoiseType, iQ );
+        }
+        else // 4 == NoiseDimensions
+        {
+            iP = noise( NoiseType, iQ, FourthDimension * ifreq );
+        }
+
+        // Accumulate this iteration's pattern.
+        Color += mag * iP;
+
+        // Update ifreq and sum for the next iteration.
+        ifreq *= Lacunarity;
+        sum += mag;
+
+        // Determine the eroded magnitude for the next iteration.
+        color  erosion = mix( -Erosion, Erosion, Color/sum );
+        color  asperitas = color(Roughness) + erosion;
+
+        if( 0 == FractalType )
+        {
+            asperitas = clamp( asperitas, color(0), color(1) );
+            mag = color(1) / pow( ifreq, color(3) - color(4)*asperitas );
+        }
+        else
+        {
+            asperitas = clamp( asperitas, color(0.01), color(0.99) );
+            mag = pow( asperitas, i );
+        }
+
+        // Distortion.
+        Q += mag * Distortion*vector( iP - color(0.5) );
+    }
+
+    // Normalize the result so it ranges between 0 and 1.
+    Color /= sum;
+
+    // Set the remaining outputs.
+    Float = Color.r;
+    Gray = color( Float );
+    Point = point( Color );
+    Vector = vector( 2.0*Color - color(1.0) );
+    Normal = normalize( Vector );
+}

@@ -1,0 +1,48 @@
+/*
+ *  Copyright 2024 Mitch J Prater.
+ *
+ *  Licensed under the Apache License Version 2.0 http://apache.org/licenses/LICENSE-2.0,
+ *  or the MIT license http://opensource.org/licenses/MIT, at your option.
+ *
+ *  This program may not be copied, modified, or distributed except according to those terms.
+ */
+shader space_NDC
+[[
+    int rfm_nodeid = 1306985,
+    string rfm_classification = "rendernode/RenderMan/pattern/OSLBook"
+]]
+(
+    string Notes = ""
+    [[
+        int connectable = 0,
+        string help =
+            "Creates a 2D projection covering the rendered image's rectangle. "
+    ]],
+
+    int DisplacedP = 0
+    [[
+        int connectable = 0,
+        string label = "Displaced P",
+        string widget = "checkBox",
+        string help =
+            "<b>Displaced P</b> determines whether to use the displaced "
+            "surface, or the original un-displaced surface. "
+            "<p>"
+            "When <i>On</i>, use the displaced surface point <tt>P</tt>."
+            "</p>"
+            "When <i>Off</i>, use the un-displaced surface point <tt>Po</tt>."
+    ]],
+
+    output point Out = point(0)
+)
+{
+    // Referencing P is required for auto-differentiation functionality.
+    Out = P;
+
+    // Replace with un-displaced P?
+    if( !DisplacedP ) getattribute( "builtin", "Po", Out );
+
+    // NDC projection.
+    Out = transform( "common", "NDC", Out );
+    Out.y = 1 - Out.y;
+}

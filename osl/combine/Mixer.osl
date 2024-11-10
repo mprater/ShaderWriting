@@ -1,0 +1,105 @@
+/*
+ *  Copyright 2024 Mitch J Prater
+ *
+ *  Licensed under the Apache License Version 2.0 http://apache.org/licenses/LICENSE-2.0,
+ *  or the MIT license http://opensource.org/licenses/MIT, at your option.
+ *
+ *  This program may not be copied, modified, or distributed except according to those terms.
+ */
+
+#define INPUT_PARAMS(L) \
+    float L##_in = 0.0 \
+    [[ \
+        string page = #L, \
+        string label = "in", \
+        string readOnly = "True", \
+        string help = \
+            "A float input value. " \
+    ]], \
+\
+    color L##_In = color(0.0) \
+    [[ \
+        string page = #L, \
+        string label = "In", \
+        string readOnly = "True", \
+        string help = \
+            "A tuple input value: color, point, vector, normal. " \
+    ]], \
+\
+    float L##_Mask = 1.0 \
+    [[ \
+        string page = #L, \
+        string label = "Mask", \
+        int slider = 1, float slidermin = 0.0, float slidermax = 1.0, \
+        string help = \
+            "Determines how much this input is combined with the others, " \
+            "or controls the <i>Mix</i> mode between this input and the others. " \
+    ]]
+
+#define WEIGHTED_SUM(L,SUM,result,Result) \
+    if( isconnected( L##_in ) || isconnected( L##_In )) \
+    { \
+        SUM += L##_Mask; \
+    } \
+    if( isconnected( L##_in )) \
+    { \
+        result += L##_in * L##_Mask; \
+    } \
+    if( isconnected( L##_In )) \
+    { \
+        Result += L##_In * L##_Mask; \
+    }
+
+
+shader combine_Mixer
+[[
+    int rfm_nodeid = 1306966,
+    string rfm_classification = "rendernode/RenderMan/pattern/OSLBook"
+]]
+(
+    string Notes = ""
+    [[
+        int connectable = 0,
+        string help =
+            "Layer the inputs, from the bottom (A) up, using the "
+            "specified blend <b>Mode</b> and <b>Mask</b> for each. "
+    ]],
+
+    int  NormalizeMasks = 1
+    [[
+        int connectable = 0,
+        string label = "Normalize Masks",
+        string widget = "checkBox",
+        string help =
+            "When <i>On</i>, the result will be divided by the sum of "
+            "the connected inputs' <b>Mask</b> values. "
+            "The result will then be their proportionally weighted sum "
+            "rather than their absolute sum. "
+    ]],
+
+    INPUT_PARAMS(E),
+    INPUT_PARAMS(D),
+    INPUT_PARAMS(C),
+    INPUT_PARAMS(B),
+    INPUT_PARAMS(A),
+    
+    output float out = 0.0,
+    output color Out = color(0.0)
+)
+{
+    float  sum = 0.0;
+
+    WEIGHTED_SUM(A,sum,out,Out);
+    WEIGHTED_SUM(B,sum,out,Out);
+    WEIGHTED_SUM(C,sum,out,Out);
+    WEIGHTED_SUM(D,sum,out,Out);
+    WEIGHTED_SUM(E,sum,out,Out);
+
+    sum = select( 1.0, sum, 1.0e-6 < sum );
+
+    if( NormalizeMasks )
+    {
+        out /= sum;
+        Out /= sum;
+    }
+}

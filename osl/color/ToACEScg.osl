@@ -1,0 +1,90 @@
+/*
+ *  Copyright 2024 Mitch J Prater.
+ *
+ *  Licensed under the Apache License Version 2.0 http://apache.org/licenses/LICENSE-2.0,
+ *  or the MIT license http://opensource.org/licenses/MIT, at your option.
+ *
+ *  This program may not be copied, modified, or distributed except according to those terms.
+ */
+shader color_ToACEScg
+[[
+    int rfm_nodeid = 1306960,
+    string rfm_classification = "rendernode/RenderMan/pattern/OSLBook"
+]]
+(
+    string Notes = ""
+    [[
+        int connectable = 0,
+        string help =
+            "Convert the input RGB color space to ACEScg. "
+            "The color space determines the color's appearance: "
+            "the specific color perception represented by the "
+            "RGB component values. "
+    ]],
+
+    color InRGB = color(0.0)
+    [[
+        string label = "In RGB",
+        string help =
+            "The input RGB values. "
+    ]],
+
+    int InSpace = 0
+    [[
+        int connectable = 0,
+        string label = "In Space",
+        string widget = "mapper",
+        string options = "ACEScg:0|Rec709:1|sRGB:2",
+        string help = 
+            "The input RGB color space. "
+    ]],
+
+    output color ACEScg = color(0.0),
+)
+{
+    // sRGB gamma decoding functions.
+    // Assumes x ranges from 0 to 1.
+    float sRGBGammaDecode( float x )
+    {
+        float  rec709 = ( x <= 0.04045 ) ? x / 12.92 : pow( (x + 0.055) / 1.055, 2.4 );
+
+        return rec709;
+    }
+
+    color sRGBGammaDecode( color rgb )
+    {
+        color  rec709 = color(
+                        sRGBGammaDecode( rgb.r ),
+                        sRGBGammaDecode( rgb.g ),
+                        sRGBGammaDecode( rgb.b )
+                        );
+
+        return rec709;
+    }
+
+    // Rec.709 to ACEScg conversion using Bradford chromatic adaptation transform.
+    // Matrix provided by https://www.colour-science.org/apps.
+    color Rec709ToACEScg( color rec709 )
+    {
+        color  acescg = color(
+                0.6130974 * rec709.r + 0.3395231 * rec709.g + 0.0473795 * rec709.b,
+                0.0701937 * rec709.r + 0.9163539 * rec709.g + 0.0134524 * rec709.b,
+                0.0206156 * rec709.r + 0.1095698 * rec709.g + 0.8698146 * rec709.b
+                );
+
+        return acescg;
+    }
+
+    if( 0 == InSpace )
+    {
+        ACEScg = InRGB;
+    }
+    else if( 1 == InSpace )
+    {
+        ACEScg = Rec709ToACEScg( InRGB );
+    }
+    else if( 2 == InSpace )
+    {
+        ACEScg = Rec709ToACEScg( sRGBGammaDecode( InRGB ));
+    }
+}

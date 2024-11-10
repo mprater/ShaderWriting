@@ -1,0 +1,137 @@
+/*
+ *  Copyright 2022 LAIKA. Modifications from Shader Writing in OSL by Mitch J Prater 2024.
+ *
+ *  Licensed under the Apache License Version 2.0 http://apache.org/licenses/LICENSE-2.0,
+ *  or the MIT license http://opensource.org/licenses/MIT, at your option.
+ *
+ *  This program may not be copied, modified, or distributed except according to those terms.
+ */
+shader texture_2D
+[[
+    int rfm_nodeid = 1306944,
+    string rfm_classification = "rendernode/RenderMan/pattern/OSLBook"
+]]
+(
+    string Notes = ""
+    [[
+        int connectable = 0,
+        string help =
+            "Reads 2D texture data from the given <b>File</b> and returns its results. "
+            "This is assumed to contain 1(R), 2(RA), 3(RGB), or 4(RGBA) channels of "
+            "information. "
+    ]],
+
+    point Space = point(0.0)
+    [[
+        string label = "Space (st)",
+        string help =
+            "When connected, this value's <i>x</i> and <i>y</i> "
+            "components will define the texture mapping space. "
+            "<p>"
+            "Otherwise, the <code>st</code> primvar values (a.k.a. Texture Mapping UV's) "
+            "will be used if they exist, or the geometric <code>uv</code> space will be "
+            "used if they do not. "
+            "</p>"
+    ]],
+
+    string File = ""
+    [[
+        string fileTypes = "tex",
+        string options = "texture",
+        string help =
+            "The name of the 2D texture file to use. "
+            "This is assumed to contain 1(R), 2(RA), 3(RGB), or 4(RGBA) "
+            "channels of information. "
+            "<p>"
+            "If you are using a set of UV Index/Atlas textures, you must put "
+            "the proper filename token in the <b>File</b> string at the location "
+            "where the UV Index value(s) should be inserted. "
+            "</p>"
+            "For example, Mari UDIM texture files will have names like: "
+            "<br/><tt>/path/to/my/texture_file.1001.tex</tt>, "
+            "<br/><tt>/path/to/my/texture_file.1002.tex</tt>, "
+            "<br/>etc. "
+            "<p>"
+            "To apply the correct texture on the correct object patches, you would "
+            "specify <tt>/path/to/my/texture_file.<b><i>&lt;udim&gt;</i></b>.tex</tt> "
+            "as the <b>File</b> string in order to indicate where the Mari style UDIM "
+            "texture index number should be inserted. "
+            "Use <b><i>&lt;u&gt;</i></b> and <b><i>&lt;v&gt;</i></b> "
+            "to indicate where Z-Brush style indices should be inserted, "
+            "or <b><i>&lt;U&gt;</i></b> and <b><i>&lt;V&gt;</i></b> "
+            "to indicate where Mudbox style indices should be inserted. "
+            "</p>"
+    ]],
+
+    output color RGB = color(0.0),
+    output color RGBAvg = color(0.0),
+    output float R = 0.0,
+    output float G = 0.0,
+    output float B = 0.0,
+    output float A = 1.0,
+
+    // Will read the 'st' primvar, or sets (s,t) = (u,v) if there is none.
+    float  s = u [[ int lockgeom = 0, int connectable = 0, string widget = "null" ]],
+    float  t = v [[ int lockgeom = 0, int connectable = 0, string widget = "null" ]]
+)
+{
+    // Texture coordinate space.
+    point  st;
+    if( isconnected( Space ))
+    {
+        st = Space;
+    }
+    else
+    {
+        st = point(s,t,0);
+    }
+
+    // Check for UV grid indexing tokens in the File string.
+    int  udim = regex_search( File, "<UDIM>" ) || regex_search( File, "<udim>" );
+    int  uv = regex_search( File, "<u>" ) && regex_search( File, "<v>" );
+    int  UV = regex_search( File, "<U>" ) && regex_search( File, "<V>" );
+    int  uv_index = udim || uv || UV;
+
+    // Flip the t orientation for RenderMan .tex file access.
+    // This requires re-orienting each UV indexed grid separately.
+    if( uv_index )
+    {
+        float  index = floor( st[1] );
+        st[1] = 1 - (st[1] - index) + index;
+    }
+    // Otherwise, invert t for the entire st space.
+    else
+    {
+        st[1] = 1 - st[1];
+    }
+
+    // Removed the 'exists' check for the texture file.
+    // This will allow the renderer to report that the texture
+    // is missing, rather than silently returning black.
+    int  channels = 4;
+    gettextureinfo( File, "channels", channels );
+
+    // Puts the first three channels into RGB, fourth in A.
+    RGB = texture( File, st[0], st[1], "alpha", A );
+
+    // Get the average RGB value.
+    RGBAvg = texture( File, 0.5, 0.5, "blur", 1.0 );
+
+    // Texture contains one or two channels.
+    if( channels < 3 )
+    {
+        RGB = color( RGB[0] );
+        RGBAvg = color( RGBAvg[0] );
+
+        // Two channels: alpha is the second.
+        if( 1 < channels )
+        {
+            A = RGB[1];
+        }
+    }
+
+    // Set the remaining outputs.
+    R = RGB.r;
+    G = RGB.g;
+    B = RGB.b;
+}

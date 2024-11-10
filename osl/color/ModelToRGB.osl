@@ -1,0 +1,43 @@
+/*
+ *  Copyright 2024 Mitch J Prater.
+ *
+ *  Licensed under the Apache License Version 2.0 http://apache.org/licenses/LICENSE-2.0,
+ *  or the MIT license http://opensource.org/licenses/MIT, at your option.
+ *
+ *  This program may not be copied, modified, or distributed except according to those terms.
+ */
+shader color_ModelToRGB
+[[
+    int rfm_nodeid = 1306959,
+    string rfm_classification = "rendernode/RenderMan/pattern/OSLBook"
+]]
+(
+    string Notes = ""
+    [[
+        int connectable = 0,
+        string help =
+            "Convert the input color Model to RGB. "
+            "A color model is a way of representing a color but "
+            "says nothing about what the color actually looks like. "
+            "A color's appearance is instead determined by its color space. "
+    ]],
+
+    color In = color(0.0)
+    [[
+        string help =
+            "The color Model value to convert to RGB. "
+    ]],
+
+    string Model = "hsv"
+    [[
+        string widget = "mapper",
+        string options = "RGB:rgb|HSL:hsl|HSV:hsv",
+        string help =
+            "The input color value's Model. "
+    ]],
+
+    output color RGB = color(0.0)
+)
+{
+    RGB = transformc( Model, "rgb", In );
+}

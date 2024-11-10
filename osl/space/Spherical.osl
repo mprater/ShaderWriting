@@ -1,0 +1,89 @@
+/*
+ *  Copyright 2024 Mitch J Prater.
+ *
+ *  Licensed under the Apache License Version 2.0 http://apache.org/licenses/LICENSE-2.0,
+ *  or the MIT license http://opensource.org/licenses/MIT, at your option.
+ *
+ *  This program may not be copied, modified, or distributed except according to those terms.
+ */
+shader space_Spherical
+[[
+    int rfm_nodeid = 1306978,
+    string rfm_classification = "rendernode/RenderMan/pattern/OSLBook"
+]]
+(
+    string Notes = ""
+    [[
+        int connectable = 0,
+        string help =
+            "Create a spherical projection around the selected <b>Axis</b>. "
+    ]],
+
+    point In = point(0)
+    [[
+        string help =
+            "The 3D space in which to create the spherical projection. "
+    ]],
+
+    int DisplacedP = 0
+    [[
+        int connectable = 0,
+        string label = "Displaced P",
+        string widget = "checkBox",
+        string help =
+            "If there is no input space connection, should the displaced "
+            "surface or the original un-displaced surface be used? "
+            "<p>"
+            "When <i>On</i>, use the displaced surface point <tt>P</tt>."
+            "</p>"
+            "When <i>Off</i>, use the un-displaced surface point <tt>Po</tt>."
+    ]],
+
+    int Axis = 0
+    [[
+        string widget = "mapper",
+        string options = "X:0|Y:1|Z:2",
+        string help =
+            "Selects the spherical axis of rotation. "
+    ]],
+
+    output point Out = point(0.0)
+)
+{
+    // Initialize the 3d space.
+    if( isconnected( In ))
+    {
+        Out = In;
+    }
+    else
+    {
+        // Referencing P is required for auto-differentiation functionality.
+        Out = P;
+
+        // Overwrite with Po.
+        if( !DisplacedP ) getattribute( "builtin", "Po", Out );
+
+        // Transform to object space.
+        Out = transform( "common", "object", Out );
+    }
+
+    // Select the projection axis.
+    if( 0 == Axis )
+    {
+        Out = point( Out.y, Out.z, Out.x );
+    }
+    else if( 1 == Axis )
+    {
+        Out = point( Out.x, Out.z, Out.y );
+    }
+    else if( 2 == Axis )
+    {
+        Out = point( Out.x, Out.y, Out.z );
+    }
+
+    // Spherical projection.
+    Out = normalize( vector( Out ));
+    Out.x = atan2( Out.y, Out.x ) / M_2PI + 0.5;
+    Out.y = asin( Out.z ) / M_PI_2 + 0.5;
+    Out.z = 0.0;
+}

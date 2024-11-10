@@ -1,0 +1,57 @@
+/*
+ *  Copyright 2024 Mitch J Prater.
+ *
+ *  Licensed under the Apache License Version 2.0 http://apache.org/licenses/LICENSE-2.0,
+ *  or the MIT license http://opensource.org/licenses/MIT, at your option.
+ *
+ *  This program may not be copied, modified, or distributed except according to those terms.
+ */
+shader modify_Skew
+[[
+    int rfm_nodeid = 1306991,
+    string rfm_classification = "rendernode/RenderMan/pattern/OSLBook"
+]]
+(
+    string Notes = ""
+    [[
+        int connectable = 0,
+        string help =
+            "Skew the input value's distribution by shifting "
+            "the middle values toward 0 or 1. "
+    ]],
+
+    float in = 0.5
+    [[
+        string help =
+            "The input pattern. Its values should range from 0 to 1. "
+    ]],
+
+    color In = color(0.5)
+    [[
+        string help =
+            "The input pattern. Its values should range from 0 to 1. "
+    ]],
+
+    float Center = 0.5
+    [[
+        int slider = 1, float slidermin = 0.0, float slidermax = 1.0,
+        string help = 
+            "Center < 0.5 will skew the distribution of input values toward 0. "
+            "<br/>"
+            "Center > 0.5 will skew the distribution of input values toward 1. "
+    ]],
+
+    output float out = 0.0,
+    output color Out = color( 0.0 )
+)
+{
+    float  e = -log(Center) / log(2);
+
+    out = select( pow( in, e ), in, in <= 0.0 || 1.0 <= in );
+
+    Out = color(
+            select( pow( In.r, e ), In.r, In.r <= 0.0 || 1.0 <= In.r ),
+            select( pow( In.g, e ), In.g, In.g <= 0.0 || 1.0 <= In.g ),
+            select( pow( In.b, e ), In.b, In.b <= 0.0 || 1.0 <= In.b )
+            );
+}

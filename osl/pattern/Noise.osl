@@ -1,0 +1,119 @@
+/*
+ *  Copyright 2022 LAIKA. Modifications from Shader Writing in OSL by Mitch J Prater 2024.
+ *
+ *  Licensed under the Apache License Version 2.0 http://apache.org/licenses/LICENSE-2.0,
+ *  or the MIT license http://opensource.org/licenses/MIT, at your option.
+ *
+ *  This program may not be copied, modified, or distributed except according to those terms.
+ */
+shader pattern_Noise
+[[
+    int rfm_nodeid = 1306973,
+    string rfm_classification = "rendernode/RenderMan/pattern/OSLBook"
+]]
+(
+    string Notes = ""
+    [[
+        int connectable = 0,
+        string help =
+            "Produces a noise pattern of the selected type and dimension. "
+    ]],
+
+    point Space = P
+    [[
+        string readOnly = "True",
+        string help =
+            "Defines the space in which the pattern is generated. "
+            "Contains up to the first three dimensions. "
+            "If not connected, \"object\" space <tt>Po</tt> will be used. "
+    ]],
+
+    float FourthDimension = 0.0
+    [[
+        string label = "Fourth Dimension",
+        int slider = 1, float slidermin = -5.0, float slidermax = 5.0,
+        string help =
+            "Adds an additional spatial dimension to the <b>Space</b> "
+            "used to generate the pattern. "
+    ]],
+
+    int NoiseDimensions = 3
+    [[
+        int connectable = 0,
+        string label = "Noise Dimensions",
+        string widget = "mapper",
+        string options = "2D:2|3D:3|4D:4",
+        string help =
+            "Explicitly controls the dimension of the noise. "
+            "This can have a particularly large impact on the <i>Simplex</i> <b>Noise Type</b>. "
+    ]],
+
+    string NoiseType = "uperlin"
+    [[
+        int connectable = 0,
+        string label = "Noise Type",
+        string widget = "mapper",
+        string options = "Perlin:uperlin|Simplex:usimplex|Cell:cell|Gabor:gabor",
+        string help =
+            "Selects the type of noise pattern to generate. "
+    ]],
+
+    float Size = 1.0
+    [[
+        int slider = 1, float slidermin = 0.1, float slidercenter = 1.0, float slidermax = 10.0,
+        string help =
+            "Controls the size of the pattern variations. "
+    ]],
+
+    float Variation = 0.0
+    [[
+        int slider = 1, float slidermin = -5.0, float slidermax = 5.0,
+        string help =
+            "This offsets the resulting pattern. "
+            "Can be used to ensure that different objects do not appear identical. "
+    ]],
+
+    output float  Float = 0.0,
+    output color  Gray = color(0.0),
+    output color  Color = color(0.0),
+    output point  Point = point(0.0),
+    output vector Vector = vector(0.0),
+    output normal Normal = normal(0.0)
+)
+{
+    // Pattern generation space.
+    point  Q = Space;
+
+    // Fallback to un-displaced "object" space.
+    if( !isconnected( Space ))
+    {
+        getattribute( "builtin", "Po", Q );
+        Q = transform( "common", "object", Q );
+    }
+
+    // Size scaling.
+    Q /= max( 1.0e-6, Size );
+
+    // Compute the pattern.
+    if( 2 == NoiseDimensions )
+    {
+        Color = noise( NoiseType, Q.x + Variation, Q.y - Variation );
+    }
+    else if( 3 == NoiseDimensions )
+    {
+        Color = noise( NoiseType, Q + vector( Variation, -Variation, Variation) );
+    }
+    else // 4 == NoiseDimensions
+    {
+        Color = noise( NoiseType, Q, Variation );
+    }
+
+    if( "gabor" == NoiseType ) Color = 0.5*Color + 0.5;
+
+    // Set the outputs.
+    Float = Color.r;
+    Gray = color( Float );
+    Point = point( Color );
+    Vector = vector( 2.0*Color - color(1.0) );
+    Normal = normalize( Vector );
+}

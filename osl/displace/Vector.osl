@@ -1,0 +1,103 @@
+/*
+ *  Copyright 2022 LAIKA. Modifications from Shader Writing in OSL by Mitch J Prater 2024.
+ *
+ *  Licensed under the Apache License Version 2.0 http://apache.org/licenses/LICENSE-2.0,
+ *  or the MIT license http://opensource.org/licenses/MIT, at your option.
+ *
+ *  This program may not be copied, modified, or distributed except according to those terms.
+ */
+
+// Define the cube-root function for OSL versions that don't have it.
+#if OSL_VERSION_MINOR >= 13
+    float cube_root( float x ) { return cbrt(x); }
+#else
+    float cube_root( float x ) { return pow( x, (1./3.) ); }
+#endif
+
+shader displace_Vector
+[[
+    int rfm_nodeid = 1306946,
+    string rfm_classification = "rendernode/RenderMan/pattern/OSLBook"
+]]
+(
+    string Notes = ""
+    [[
+        int connectable = 0,
+        string help =
+            "Create a displacement vector, <b>DeltaP</b>, and its displaced "
+            "surface normal, <b>DispN</b>, from a <b>Vector</b> pattern input. "
+    ]],
+
+    vector Vector = vector(0.0)
+    [[
+        string help =
+            "This pattern is used to directly displace the surface: "
+            "<tt>P</tt> += <b>Vector</b>. "
+            "It is assumed to contain vectors whose lengths range from 0 to 1. "
+    ]],
+
+    int Invert = 0
+    [[
+        int connectable = 0,
+        string label = "Invert",
+        string widget = "checkBox",
+        string help =
+            "Controls whether to invert the <b>Vector</b> displacement pattern: "
+            "high becomes low, concave becomes convex, etc. "
+    ]],
+
+    float Magnitude = 1.0
+    [[
+        int slider = 1, float slidermin = 0.0, float slidermax = 2.0,
+        string help =
+            "Controls the magnitude of the resulting displacement. "
+    ]],
+
+    string MagnitudeSpace = "world"
+    [[
+        int connectable = 0,
+        string label = "Magnitude Space",
+        string widget = "popup", int editable = 1,
+        string options =
+            "object"
+            "|world",
+        string help =
+            "Determines in what space the units of <b>Magnitude</b> are specified: "
+            "how big is 1 unit of <b>Magnitude</b> displacement?"
+    ]],
+
+    output normal DispN = normal(0.0),
+    output vector DeltaP = vector(0.0)
+)
+{
+    DeltaP = Vector;
+
+    // Invert?
+    if( Invert ) DeltaP = -DeltaP;
+
+    // Apply the Magnitude.
+    DeltaP *= Magnitude;
+
+    // Scale to common space.
+    matrix  mag_to_common;
+    if( getmatrix( MagnitudeSpace, "common", mag_to_common ))
+    {
+        DeltaP *= cube_root( abs( determinant( mag_to_common )));
+    }
+    else
+    {
+        warning(
+            "Magnitude Space = \"%s\" couldn't be found. "
+            "Using \"common\" space instead. ",
+            MagnitudeSpace
+            );
+    }
+
+    // The displaced surface normal. Po = P during displacement rendering.
+    // However, if the DeltaP result of cascaded displacements is being
+    // used to produce a bumped shading normal, the original, un-displaced
+    // surface point Po should be used.
+    point  Po = P;
+    getattribute( "builtin", "Po", Po );
+    DispN = normalize( calculatenormal( Po + DeltaP ));
+}

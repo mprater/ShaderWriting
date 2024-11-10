@@ -1,0 +1,83 @@
+/*
+ *  Copyright 2024 Mitch J Prater.
+ *
+ *  Licensed under the Apache License Version 2.0 http://apache.org/licenses/LICENSE-2.0,
+ *  or the MIT license http://opensource.org/licenses/MIT, at your option.
+ *
+ *  This program may not be copied, modified, or distributed except according to those terms.
+ */
+
+//----------------------------------------------------------------------
+// Crease x by the desired amount.
+//----------------------------------------------------------------------
+float crease( float x, float amount )
+{
+    // (1-amount)^4.
+    float  amountInverse = 1.0-amount;
+    amountInverse *= amountInverse;
+    amountInverse *= amountInverse;
+
+    // Remap x[0,1] -> result[-amount,1].
+    float  result = mix( -amount, 1.0, x ); 
+
+    // Crease result.
+    result = mix(
+            // Rounded abs() step at 0.0 using 1-amount width.
+            mix( -result, result, aastep( 0.0, result, 0.0, 1.0-amount )),
+
+            // result = x when amount = 0.
+            result,
+
+            // Quickly use rounded abs() step of x as 0 < amount.
+            amountInverse
+            );
+
+    return result;
+}
+color crease( color x, float amount )
+{
+    return color( crease( x.r, amount ), crease( x.g, amount ), crease( x.b, amount ) );
+}
+
+
+shader modify_Crease
+[[
+    int rfm_nodeid = 1306989,
+    string rfm_classification = "rendernode/RenderMan/pattern/OSLBook"
+]]
+(
+    string Notes = ""
+    [[
+        int connectable = 0,
+        string help =
+            "Creases the input pattern by \"folding\" its range of values. "
+    ]],
+
+    float in = 0.5
+    [[
+        string help =
+            "The input pattern. "
+    ]],
+
+    color In = color(0.5)
+    [[
+        string help =
+            "The input pattern. "
+    ]],
+
+    float Crease = 1.0
+    [[
+        int slider = 1, float slidermin = 0.0, float slidermax = 1.0,
+        string help =
+            "Controls the amount of creasing applied to the input pattern. "
+            "A value of 0 leaves the input unchanged. "
+    ]],
+
+    output float out = 0.0,
+    output color Out = color(0.0)
+)
+{
+    // Crease the patterns.
+    out = crease( in, Crease );
+    Out = crease( In, Crease );
+}

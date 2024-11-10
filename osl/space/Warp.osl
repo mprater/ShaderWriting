@@ -1,0 +1,60 @@
+/*
+ *  Copyright 2022 LAIKA. Modifications from Shader Writing in OSL by Mitch J Prater 2024.
+ *
+ *  Licensed under the Apache License Version 2.0 http://apache.org/licenses/LICENSE-2.0,
+ *  or the MIT license http://opensource.org/licenses/MIT, at your option.
+ *
+ *  This program may not be copied, modified, or distributed except according to those terms.
+ */
+shader space_Warp
+[[
+    int rfm_nodeid = 1306982,
+    string rfm_classification = "rendernode/RenderMan/pattern/OSLBook"
+]]
+(
+    string Notes = ""
+    [[
+        int connectable = 0,
+        string help =
+            "Warps the <b>In</b> point. "
+    ]],
+
+    point In = P
+    [[
+        string readOnly = "True",
+        string help =
+            "The value to warp. "
+            "If not connected, \"object\" space <tt>Po</tt> will be used. "
+    ]],
+
+    vector Vector = vector(0.0)
+    [[
+        string help =
+            "The warping vector. This is added to the <b>In</b> value. "
+    ]],
+
+    int ExpandRange = 0
+    [[
+        int connectable = 0,
+        string label = "Expand Range",
+        string widget = "checkBox",
+        string help =
+            "If the <b>Vector</b> values are in the (0,1) range, "
+            "should they be expanded to (-1,1) so they produce "
+            "symmetrical warping around the <b>In</b> point? "
+    ]],
+
+    float Magnitude = 0.5
+    [[
+        int slider = 1, float slidermin = 0.0, float slidermax = 1.0,
+        string help =
+            "The magnitude of the warping applied to the <b>In</b> point. "
+    ]],
+
+    output point Out = point(0.0)
+)
+{
+    vector  dir = select( Vector, 2*Vector-vector(1), ExpandRange );
+
+    Out = In + Magnitude*dir;
+}

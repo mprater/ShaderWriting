@@ -1,5 +1,5 @@
 #
-#   Copyright 2022 LAIKA. Authored by Mitch Prater.
+#   Copyright 2022 LAIKA. Modifications from Shader Writing in OSL by Mitch J Prater 2024.
 # 
 #   Licensed under the Apache License Version 2.0 http://apache.org/licenses/LICENSE-2.0,
 #   or the MIT license http://opensource.org/licenses/MIT, at your option.
@@ -29,7 +29,7 @@ RMANTREE ?= $(PIXAR_ROOT)/RenderManProServer-$(RMAN_VERSION)
 # SUBDIRS and EXCLUDE control variables determine which .osl files are made.
 #
 # These directories will be searched for .osl files.
-SUBDIRS := color combine convert data displace modify pattern plot space texture
+SUBDIRS := color combine convert displace modify pattern space texture trace
 
 # These shaders won't be built: directory/shadername
 EXCLUDE := 

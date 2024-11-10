@@ -1,0 +1,188 @@
+/*
+ *  Copyright 2024 Mitch J Prater.
+ *
+ *  Licensed under the Apache License Version 2.0 http://apache.org/licenses/LICENSE-2.0,
+ *  or the MIT license http://opensource.org/licenses/MIT, at your option.
+ *
+ *  This program may not be copied, modified, or distributed except according to those terms.
+ */
+shader pattern_Tessellation
+[[
+    int rfm_nodeid = 1306975,
+    string rfm_classification = "rendernode/RenderMan/pattern/OSLBook"
+]]
+(
+    string Notes = ""
+    [[
+        int connectable = 0,
+        string help =
+            "Produces a pattern based on randomly placed 2D tiles. "
+            "The raw pattern is output in the <b>Float</b> and <b>Gray</b> outputs, "
+            "and the <b>Foreground</b> and <b>Background</b> colors are used to "
+            "produce the <b>Color</b> output. "
+    ]],
+
+    point Space = point(0.0)
+    [[
+        string readOnly = "True",
+        string help =
+            "Defines the space in which the pattern is generated. "
+    ]],
+
+    float Size = 1.0
+    [[
+        int slider = 1, float slidermin = 0.1, float slidercenter = 1.0, float slidermax = 10.0,
+        string help =
+            "Controls the size of the tiles. "
+    ]],
+
+    color Foreground = color(1.0)
+    [[
+        string help =
+            "This is used to color the pattern on the tiles "
+            "and is applied over the <b>Background</b> color. "
+    ]],
+
+    color Background = color(0.0)
+    [[
+        string help =
+            "This covers the entire tile except for the <b>Foreground</b> pattern. "
+    ]],
+
+    float Min = 0.4
+    [[
+        int slider = 1, float slidermin = 0.0, float slidercenter = 0.4, float slidermax = 1.0,
+        string help =
+            "Along with <b>Max</b>, controls the width and location of the "
+            "<b>Forground</b> color along the edges of the tiles. "
+    ]],
+
+    float Max = 0.6
+    [[
+        int slider = 1, float slidermin = 0.0, float slidercenter = 0.6, float slidermax = 1.0,
+        string help =
+            "Along with <b>Min</b>, controls the width and location of the "
+            "<b>Forground</b> color along the edges of the tiles. "
+    ]],
+
+    int Pattern = 0
+    [[
+        int connectable = 0,
+        string label = "Pattern",
+        string widget = "mapper",
+        string options = "Arcs:0|Diagonals:1|Rectilinear:2",
+        string help =
+            "Selects the base pattern type to be generated. "
+    ]],
+
+    int Line = 0
+    [[
+        int connectable = 0,
+        string label = "Line",
+        string widget = "checkBox",
+        string help =
+            "Adds a line element to the pattern. "
+    ]],
+
+    float PercentRotated = 0.5
+    [[
+        string label = "Percent Rotated",
+        int slider = 1, float slidermin = 0.0, float slidermax = 1.0,
+        string help =
+            "Determines what percentage of the tiles are rotated. "
+    ]],
+
+    int Invert = 0
+    [[
+        string label = "Invert",
+        string widget = "checkBox",
+        string help =
+            "Changes the output <b>Color</b> to 1 &ndash; <b>Color</b>. "
+    ]],
+
+    int Variation = 0
+    [[
+        int slider = 1, int slidermin = 0, int slidermax = 10, int sensitivity = 1,
+        string help =
+            "Alters the specific pattern generated without "
+            "changing any of its characteristics. "
+    ]],
+
+    output float  Float = 0.0,
+    output color  Gray = color(0.0),
+    output color  Color = color(0.0),
+
+    // Will read the 'st' primvar, or sets (s,t) = (u,v) if there is none.
+    float  s = u [[ int lockgeom = 0, int connectable = 0, string widget = "null" ]],
+    float  t = v [[ int lockgeom = 0, int connectable = 0, string widget = "null" ]]
+)
+{
+    // Pattern generation space.
+    point  Q = Space;
+
+    // Fallback to "st" space.
+    if( !isconnected( Space ))
+    {
+        Q = point( s, t, 0 );
+    }
+
+    // Size scaling.
+    Q /= max( 1.0e-6, Size );
+
+    // The shaded point's tile index.
+    point  QIndex = floor( Q );
+
+    // The (square) tile's coordinate system.
+    point  QTile = Q - QIndex;
+
+    // Uniform random number per tile.
+    float  rn = noise( "cell", QIndex, Variation );
+
+    // Randomly rotate the tile 90 degrees.
+    QTile = select( QTile, point(1-QTile.y, QTile.x, 0), rn < PercentRotated );
+
+    // Generate the tile's pattern basis.
+    float  r0, r1;
+
+    if( 0 == Pattern ) // Arcs
+    {
+        r0 = length( vector( QTile.x, QTile.y, 0 ));
+        r1 = length( vector( 1-QTile.x, 1-QTile.y, 0 ));
+    }
+    else if( 1 == Pattern ) // Diagonals
+    {
+        r0 = abs( QTile.x - QTile.y );
+        r1 = abs( 1-QTile.x - QTile.y );
+    }
+    else if( 2 == Pattern ) // Rectilinear
+    {
+        r0 = min( QTile.x, QTile.y );
+        r1 = min( 1-QTile.x, 1-QTile.y );
+    }
+
+    // Optionally generate a connecting line.
+    float  line = 0;
+
+    if( Line )
+    {
+        line = step( Min, QTile.x ) - step( Max, QTile.x );
+    }
+
+    // Generate the tile's pattern.
+    float  a = step( Min, r0 ) - step( Max, r0 );
+    float  b = step( Min, r1 ) - step( Max, r1 );
+
+    float  blend = max( max( a, b ), line );
+
+    Float = blend;
+    Gray = color( Float );
+    Color = mix( Background, Foreground, blend );
+
+    // Apply inversion.
+    if( Invert )
+    {
+        Float = 1 - Float;
+        Gray = color( Float );
+        Color = 1 - Color;
+    }
+}

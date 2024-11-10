@@ -1,0 +1,102 @@
+/*
+ *  Copyright 2024 Mitch J Prater.
+ *
+ *  Licensed under the Apache License Version 2.0 http://apache.org/licenses/LICENSE-2.0,
+ *  or the MIT license http://opensource.org/licenses/MIT, at your option.
+ *
+ *  This program may not be copied, modified, or distributed except according to those terms.
+ */
+shader space_Shear
+[[
+    int rfm_nodeid = 1306977,
+    string rfm_classification = "rendernode/RenderMan/pattern/OSLBook"
+]]
+(
+    string Notes = ""
+    [[
+        int connectable = 0,
+        string help =
+            "Project the input 3D space orthographically along the selected <b>Axis</b>. "
+            "The 2D orthographic space is offset by 0.5 to center a projected texture "
+            "on the chosen <b>Axis</b>. "
+            "Then shear the orthographic projection by the desired <b>Shear</b> amount. "
+            "Shear offsets the 2D output based on the (normally unused) third axis. "
+            "This creates a continuous, seamless mapping of the 2D space onto a "
+            "3D object. "
+    ]],
+
+    point In = point(0)
+    [[
+        string help =
+            "The 3D space to project orthographically. "
+    ]],
+
+    int DisplacedP = 0
+    [[
+        int connectable = 0,
+        string label = "Displaced P",
+        string widget = "checkBox",
+        string help =
+            "If there is no input space connection, should the displaced "
+            "surface or the original un-displaced surface be used? "
+            "<p>"
+            "When <i>On</i>, use the displaced surface point <tt>P</tt>."
+            "</p>"
+            "When <i>Off</i>, use the un-displaced surface point <tt>Po</tt>."
+    ]],
+
+    int Axis = 0
+    [[
+        string widget = "mapper",
+        string options = "X:0|Y:1|Z:2",
+        string help =
+            "Selects which axis is removed from the input 3D space. "
+            "The remaining two define the orthographic projection. "
+            "These are offset by 0.5 to center a projected texture "
+            "on the selected axis. "
+    ]],
+
+    float Shear = 0.0
+    [[
+        int slider = 1, float slidermin = 0.0, float slidermax = 1.0,
+        string help =
+            "Determines how much shear to add to the orthographic projection. "
+    ]],
+
+    output point Out = point(0.0)
+)
+{
+    // Initialize the 3d space.
+    if( isconnected( In ))
+    {
+        Out = In;
+    }
+    else
+    {
+        // Referencing P is required for any down-stream auto-differentiation.
+        Out = P;
+
+        // Overwrite with Po.
+        if( !DisplacedP ) getattribute( "builtin", "Po", Out );
+
+        // Transform to object space.
+        Out = transform( "common", "object", Out );
+    }
+
+    // Orthographic projections.
+    if( 0 == Axis )
+    {
+        Out = point( Out.y + 0.5, Out.z + 0.5, Out.x );
+    }
+    else if( 1 == Axis )
+    {
+        Out = point( Out.x + 0.5, Out.z + 0.5, Out.y );
+    }
+    else if( 2 == Axis )
+    {
+        Out = point( Out.x + 0.5, Out.y + 0.5, Out.z );
+    }
+
+    // Add shear.
+    Out += Shear * vector( Out.z, Out.z, 0.0 );
+}

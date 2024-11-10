@@ -1,5 +1,5 @@
 #
-#   Copyright 2022 LAIKA. Authored by Mitch Prater.
+#   Copyright 2022 LAIKA. Modifications from Shader Writing in OSL by Mitch J Prater 2024.
 # 
 #   Licensed under the Apache License Version 2.0 http://apache.org/licenses/LICENSE-2.0,
 #   or the MIT license http://opensource.org/licenses/MIT, at your option.

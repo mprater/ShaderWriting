@@ -1,0 +1,104 @@
+/*
+ *  Copyright 2022 LAIKA. Modifications from Shader Writing in OSL by Mitch J Prater 2024.
+ *
+ *  Licensed under the Apache License Version 2.0 http://apache.org/licenses/LICENSE-2.0,
+ *  or the MIT license http://opensource.org/licenses/MIT, at your option.
+ *
+ *  This program may not be copied, modified, or distributed except according to those terms.
+ */
+shader convert_DeltaPToBump
+[[
+    int rfm_nodeid = 1306956,
+    string rfm_classification = "rendernode/RenderMan/pattern/Laika"
+]]
+(
+    string Notes = ""
+    [[
+        int connectable = 0,
+        string help =
+            "Converts a <b>DeltaP</b> (Vector Displacement) value into "
+            "<b>SurfaceGradient</b> and bumped <b>ShadingNormal</b> "
+            "representations of its surface normal variations. "
+    ]],
+
+    vector DeltaP = vector(0.0)
+    [[
+        string label = "DeltaP",
+        string help =
+            "The <b>DeltaP</b> (Vector Displacement) value to convert "
+            "into <b>SurfaceGradient</b> and bumped <b>ShadingNormal</b> "
+            "representations of its surface normal variations. "
+    ]],
+
+    float BumpGain = 1.0
+    [[
+        string label = "Bump Gain",
+        int slider = 1, float slidermin = 0.0, float slidermax = 2.0,
+        string help =
+            "Controls how much bumped appearance the resulting "
+            "<b>Shading Normal</b> and <b>SurfaceGradient</b> will contain. "
+    ]],
+
+    output normal ShadingNormal = normal(0.0),
+    output vector SurfaceGradient = vector(0.0)
+)
+{
+    // Ensures the normal is facing the view vector.
+    // Note that neither input needs to be normalized,
+    // nor is the result normalized.
+    normal projectforward( normal Norm, vector View )
+    {
+        // If the object's surface faces the view direction...
+        int  frontNg = dot( Ng, View ) >= 0.0;
+
+        // ...and the normal is facing away from the view direction...
+        vector Vn = normalize( View );
+        float  NdotVn = dot( Norm, Vn );
+        int  backN = NdotVn <= 0.0;
+
+        // ...project the normal forward so it's perpendicular to the
+        // view + 1% more to avoid numerical dithering at the silhouette.
+        int  projectForward = frontNg && backN;
+        normal forwardN = select( Norm, Norm - 1.01*NdotVn*Vn, projectForward );
+
+        // Return the (un-normalized) forward projected normal.
+        return forwardN;
+    }
+
+    // Mikkelsen, M. 2020
+    // Surface Gradient–Based Bump Mapping Framework
+    // Journal of Computer Graphics Techniques, Vol. 9, No. 3
+    // https://jcgt.org/published/0009/03/04/
+    // Note that Norm need not be normalized.
+    vector surfacegradient( normal Norm )
+    {
+        // Compute the surface gradient from the normal.
+        float  k = dot( Ng, Norm );
+        vector SurfGrad = ( k*Ng - Norm )/max( 1.0e-8, abs(k) );
+
+        // Return the surface gradient vector.
+        return SurfGrad;
+    }
+
+    // Must reference P for auto-differentiation to work.
+    point  Po = P;
+    getattribute( "builtin", "Po", Po );
+
+    // Generate the displaced surface point and normal.
+    point  DispP = Po + DeltaP;
+    normal DispN = calculatenormal( DispP );
+
+    // Ensure the vertex shading normal influence is retained.
+    vector deltaNg = N - Ng;
+    DispN = normalize( DispN ) + deltaNg;
+
+    // Ensure the displaced normal faces the viewer.
+    DispN = projectforward( DispN, -I );
+
+    // Compute the surface gradient vector representation of DispN.
+    SurfaceGradient = surfacegradient( DispN ) * BumpGain;
+
+    // Generate the bumped shading normal from the surface gradient.
+    // This ensures the shading normal won't point into the surface.
+    ShadingNormal = normalize( Ng - SurfaceGradient );
+}
