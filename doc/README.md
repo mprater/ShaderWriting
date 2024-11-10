@@ -20,7 +20,7 @@ of this repository)
 and to provide source code
 [version control](https://git-scm.com/video/what-is-version-control)
 if you indend to develop your own shaders.
-* [RenderMan<sup>&reg;</sup>](https://renderman.pixar.com/product)
+* [RenderMan](https://renderman.pixar.com/product)<sup>&reg;</sup>
 was used to develop the shaders and the build system.
 Other rendering systems can still make use of the OSL shading nodes with little or no change.
 
@@ -34,9 +34,9 @@ To use the supplied repository content as is:
 
 1. Get a [professional](https://renderman.pixar.com/store) (paid) or 
 [non-commercial](https://renderman.pixar.com/store) (free)  license for 
-[RenderMan<sup>&reg;</sup>](https://renderman.pixar.com/product).
+[RenderMan](https://renderman.pixar.com/product)<sup>&reg;</sup>.
 
-1. [Install RenderMan<sup>&reg;</sup>](https://rmanwiki.pixar.com/display/REN/Installation+and+Licensing) and ensure it is functioning properly.
+1. [Install RenderMan](https://rmanwiki.pixar.com/display/REN/Installation+and+Licensing)<sup>&reg;</sup> and ensure it is functioning properly.
 
 1. Set these [environment variables](https://en.wikipedia.org/wiki/Environment_variable) 
 appropriately.
