@@ -12,3 +12,11 @@ It also simplifies the fallback code in case there is no input connection made t
 And while I included the fallback use of *"object"* space <tt>Po</tt> as a convenience to shader authors
 when a **Space** parameter connection is not supplied, the best practice is to always provide such a connection so the
 pattern generation space is explicitly specified in the shading network.
+
+# RenderMan for Maya
+
+Autodesk Maya requires that every node, shading or otherwise, have a unique identifier.
+For shading nodes, these identifiers are specified with shader metadata, much like parameters can have metadata associated with them.
+I have included the rfm_nodeid and rfm_classification metadata in each shader so they are ready to use with RenderMan for Maya.
+If you want to add your own OSL shaders for use in Maya, you'll need to assign them their own unique rfm_nodeid values.
+Autodesk provides blocks of these id value here: https://mayaid.autodesk.io/
