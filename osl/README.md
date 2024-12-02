@@ -19,4 +19,4 @@ Autodesk Maya requires that every node, shading or otherwise, have a unique iden
 For shading nodes, these identifiers are specified with shader metadata, much like parameters can have metadata associated with them.
 I have included the rfm_nodeid and rfm_classification metadata in each shader so they are ready to use with RenderMan for Maya.
 If you want to add your own OSL shaders for use in Maya, you'll need to assign them their own unique rfm_nodeid values.
-Autodesk provides blocks of these id value here: https://mayaid.autodesk.io/
+Autodesk provides blocks of these id values here: https://mayaid.autodesk.io/
