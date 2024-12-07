@@ -28,7 +28,7 @@ It also makes use of open source content generously provided by
 [LAIKA](https://github.com/LaikaStudios) under these same licensing terms.
 
 # Notice
-Some books were shipped early without color images. If you received such a copy, please
+Some books were shipped prior to the official release date without color images. If you received such a copy, please
 [contact the publisher](https://www.routledge.com/contacts/customer-service)
 so they can send you a replacement.
 
